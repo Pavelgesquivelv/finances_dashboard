@@ -52,15 +52,47 @@ def get_equity_price(symbol):
 
 # ----------------- Crypto (Binance)
 def get_crypto_price(symbol):
-    """ Devuelve precio actual y cambio 24h de un en Binance """
-    url_price = f'https://api.binance.com/api/v3/ticker/price?symbol={symbol.upper()}'
-    price_resp = requests.get(url_price).json()
-    price = float(price_resp['price'])
+    """ Devuelve precio actual y cambio 24h de un en Binance
+     con reintentos y headesr para evitar bloqueos en la nube
+       """
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+    }
+    base_price_url = "https://api.binance.com/api/v3/ticker/price"
+    base_24h_url = "https://api.binance.com/api/v3/ticker/24hr"
+    symbol_upper = symbol.upper()
 
-    url_24h = f'https://api.binance.com/api/v3/ticker/24hr?symbol={symbol.upper()}'
-    stats = requests.get(url_24h).json()
-    change_pct = float(stats['priceChangePercent'])
-    return price, f'{change_pct}%'
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            # Precio actual
+            price_resp = requests.get(
+                base_price_url,
+                params={"symbol": symbol_upper},
+                headers=headers,
+                timeout=10
+            )
+            price_resp.raise_for_status()
+            price_data = price_resp.json()
+            price = float(price_data['price'])
+
+            # Estadísticas 24h
+            stats_resp = requests.get(
+                base_24h_url,
+                params={"symbol": symbol_upper},
+                headers=headers,
+                timeout=10
+            )
+            stats_resp.raise_for_status()
+            stats = stats_resp.json()
+            change_pct = float(stats['priceChangePercent'])
+            return price, f"{change_pct}%"
+
+        except Exception as e:
+            if attempt < max_retries - 1:
+                time.sleep(2)
+            else:
+                raise e
 
 def get_mexican_price(symbol):
     """ Obtiene el precio actual y cambio % diario de un activo MX """
