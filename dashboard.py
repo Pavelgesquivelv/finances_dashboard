@@ -6,7 +6,7 @@ from data_fetcher import get_portfolio_value, get_usd_mxn_rate
 from historical import compute_portfolio_history
 
 st.set_page_config(page_title="Mi Dashboard Financiero", layout="wide")
-st.title("📈 Dashboard de Inversiones (Alpha Vantage + Binance)")
+st.title("📈 Dashboard de Portafolio de Inversiones")
 
 # Cargar portafolio
 portfolio = load_portfolio()
@@ -106,4 +106,4 @@ with st.expander('Ver tabla de datos históricos'):
     st.dataframe(hist_df.style.format({'Total_MXN': '${:,.2f} MXN'}))
 
 # Nota sobre limitaciones
-st.caption("Datos de acciones: Alpha Vantage (25 req/día gratis). Crypto: Binance API pública.")
+#st.caption("Datos de acciones: Alpha Vantage (25 req/día gratis). Crypto: Binance API pública.")
