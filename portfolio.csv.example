@@ -1,0 +1,5 @@
+asset,symbol,quantity,type,currency
+BOLSA A,BOLSAA.MX,100,equity,MXN
+Apple,AAPL,10,equity,USD
+Bitcoin,BTCUSDT,0.15,crypto,USD
+Efectivo MXN,MXN,15000,cash,MXN
