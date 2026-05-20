@@ -4,11 +4,16 @@ import streamlit as st
 
 load_dotenv()
 
-# Intenta leer desde secrets de Streamlit Cloud
-try:
-    ALPHA_VANTAGE_KEY = st.secrets['ALPHA_VANTAGE_KEY']
-    TWELVE_DATA_KEY = st.secrets['TWELVE_DATA_KEY']
-except Exception:
-    # Fallback a variables de entorno local
-    ALPHA_VANTAGE_KEY = os.getenv('ALPHA_VANTAGE_KEY')
-    TWELVE_DATA_KEY = os.getenv('TWELVE_DATA_KEY')
+def get_secret(key, default=None):
+    """ Intenta leer desde secrets de Streamlit Cloud con fallback seguro """
+    try:
+        # Accedemos a st.secrets solo si existe
+        if hasattr(st, 'secrets') and st.secrets:
+            return st.secrets.get(key, default)
+        else:
+            return default
+    except Exception:
+        return default
+    
+ALPHA_VANTAGE_KEY = get_secret('ALPHA_VANTAGE_KEY') or os.getenv('ALPHA_VANTAGE_KEY')
+TWELVE_DATA_KEY = get_secret('TWELVE_DATA_KEY') or os.getenv('TWELVE_DATA_KEY')

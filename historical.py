@@ -3,12 +3,19 @@ import yfinance as yf
 import requests
 import time
 
+def _remove_timezone(index):
+    """ Convierte el índice a UTC y luego elimina la zona horaria... """
+    if index.tz is not None:
+        index = index.tz_convert('UTC').tz_localize(None)
+    return index
+
 def get_equity_history(symbol, period='1mo'):
     """ Descarga el histórico de una acción vía yfinance """
     ticker = yf.Ticker(symbol)
     data = ticker.history(period=period)
     if data.empty:
         raise ValueError(f'No se encontraron datos históricos para {symbol}')
+    data.index = _remove_timezone(data.index)
     return data['Close']
 
 def get_crypto_history(symbol, period='1mo'):
@@ -33,7 +40,7 @@ def get_crypto_history(symbol, period='1mo'):
     klines = resp.json()
 
     # Cada vela: [open_time, open, high, low, close, volume, ...]
-    dates = pd.to_datetime([k[0] for k in klines], units='ms')
+    dates = pd.to_datetime([k[0] for k in klines], unit='ms')
     closes = [float(k[4]) for k in klines]
     return pd.Series(closes, index=dates)
 
@@ -43,6 +50,7 @@ def get_usd_mxn_history(period='1mo'):
     data = ticker.history(period=period)
     if data.empty:
         raise ValueError('No se pudo obtener el histórico del TC USD/MXN')
+    data.index = _remove_timezone(data.index)
     return data['Close']
 
 def compute_portfolio_history(portfolio_df, period='1mo'):

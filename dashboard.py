@@ -5,11 +5,27 @@ from portfolio import load_portfolio
 from data_fetcher import get_portfolio_value, get_usd_mxn_rate
 from historical import compute_portfolio_history
 
-st.set_page_config(page_title="Mi Dashboard", layout="wide")
-st.title("📈 Dashboard de Portafolio de Inversiones")
+# Mapeo: Nombres de Portafolios -> nombre base del archivo 
+PORTFOLIO_MAP = {
+    'Portafolio Principal': 'portfolio',
+    'Portafolio Crypto': 'portfolio_2'
+}
 
+st.set_page_config(page_title="Mi Dashboard", layout="wide")
+
+# --- Selector de portafolio ---
+st.sidebar.title('Configuración')
+# Selector de nombres de portafolios
+friendly_names = list(PORTFOLIO_MAP.keys())
+selected_name = st.sidebar.selectbox(
+    'Selecciona el portafolio',
+    friendly_names
+)
+selected_portfolio = PORTFOLIO_MAP[selected_name]
 # Cargar portafolio
-portfolio = load_portfolio()
+portfolio = load_portfolio(selected_portfolio)
+
+st.title(f"📈 Dashboard de Portafolio de Inversiones - {selected_name.title()}")
 st.sidebar.header("Posiciones actuales")
 st.sidebar.dataframe(portfolio)
 

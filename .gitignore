@@ -219,5 +219,6 @@ __marimo__/
 
 # Confidential files
 portfolio.csv
+portfolio_2.csv
 los_secretos.txt
 encode_csv.py
