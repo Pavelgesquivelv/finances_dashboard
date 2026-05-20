@@ -50,8 +50,16 @@ def get_equity_price(symbol):
         # Fallback a yfinance para los assets Mexicanos
         raise
 
-# ----------------- Crypto (Binance)
+# --- Función para cryptos... ---
 def get_crypto_price(symbol):
+    try:
+        # Primero Binance
+        return get_crypto_price_coingecko(symbol)
+    except Exception as e:
+        print(f'Binance falló ({e}), usando CoinGecko API as backup...')
+        return get_crypto_price_coingecko(symbol)
+# ----------------- Crypto (Binance)
+def get_crypto_price_binance(symbol):
     """ Devuelve precio actual y cambio 24h de un en Binance
      con reintentos y headesr para evitar bloqueos en la nube
        """
@@ -93,6 +101,33 @@ def get_crypto_price(symbol):
                 time.sleep(2)
             else:
                 raise e
+
+def get_crypto_price_coingecko(symbol):
+    """ Obtiene precio y cambio 24h desde CoinGecko (API gratuita sin límites estrictos)"""
+    # Mapeo de símbolos de Binance a IDs de CoinGecko
+    mapping = {
+        'BTCUSDT': 'bitcoin',
+        'ETHUSDT': 'ethereum',
+        'XRPUSDT': 'ripple',
+        'TRXUSDT': 'tron',
+    }
+    coin_id = mapping.get(symbol.upper(), symbol.lower().replace('usdt', ''))
+    url = f'https://api.coingecko.com/api/v3/simple/price'
+    params = {
+        'ids': coin_id,
+        'vs_currencies': 'usd',
+        'include_24hr_change': 'true'
+    }
+    try:
+        resp = requests.get(url, params=params, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+        price = data[coin_id]['usd']
+        change_pct = data[coin_id].get('usd_24h_change', 0)
+        return price, f'{change_pct:.2f}%'
+    except Exception as e:
+        raise e
+    
 
 def get_mexican_price(symbol):
     """ Obtiene el precio actual y cambio % diario de un activo MX """
