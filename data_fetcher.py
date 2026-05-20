@@ -54,7 +54,7 @@ def get_equity_price(symbol):
 def get_crypto_price(symbol):
     try:
         # Primero Binance
-        return get_crypto_price_coingecko(symbol)
+        return get_crypto_price_binance(symbol)
     except Exception as e:
         print(f'Binance falló ({e}), usando CoinGecko API as backup...')
         return get_crypto_price_coingecko(symbol)
@@ -102,33 +102,79 @@ def get_crypto_price_binance(symbol):
             else:
                 raise e
 
-def get_crypto_price_coingecko(symbol):
-    """ Obtiene precio y cambio 24h desde CoinGecko (API gratuita sin límites estrictos)"""
+_coingecko_cache = None
+_coingecko_cache_time = 0
+
+def get_all_crypto_prices_coingecko(symbols):
+    """ Obtiene precios y cambios 24h de MULTIPLES cryptos en una sola llamada
+      desde CoinGecko (API gratuita sin límites estrictos)"""
+    global _coingecko_cache, _coingecko_cache_time
+    # Usar caché si la última llamada fue hace menos de 60 segundos
+    now = time.time()
+    if _coingecko_cache and (now - _coingecko_cache_time) < 60:
+        return _coingecko_cache
     # Mapeo de símbolos de Binance a IDs de CoinGecko
     mapping = {
         'BTCUSDT': 'bitcoin',
         'ETHUSDT': 'ethereum',
         'XRPUSDT': 'ripple',
+        'BNBUSDT': 'binancecoin',
+        'LTCUSDT': 'litecoin',
+        'XCHUSDT': 'chia',
+        'POLUSDT': 'polygon-ecosystem-token', 
+        'BTTUSDT': 'bittorrent',
+        'ADAUSDT': 'cardano',
+        'AVAXUSDT': 'avalanche-2',
+        'BCHUSDT': 'bitcoin-cash',
+        'DOTUSDT': 'polkadot',
         'TRXUSDT': 'tron',
+        'MANAUSDT': 'decentraland',
+        'BATUSDT': 'basic-attention-token',
+        'LINKUSDT': 'chainlink',
+        'XLMUSDT': 'stellar',
+        'SOLUSDT': 'solana'
     }
-    coin_id = mapping.get(symbol.upper(), symbol.lower().replace('usdt', ''))
+    ids = []
+    for sym in symbols:
+        coin_id = mapping.get(sym.upper())
+        if coin_id:
+            ids.append(coin_id)
+
+    if not ids:
+        return {}
+    
+    # Una sola llamda por todos los IDs
     url = f'https://api.coingecko.com/api/v3/simple/price'
     params = {
-        'ids': coin_id,
+        'ids': ','.join(ids),
         'vs_currencies': 'usd',
         'include_24hr_change': 'true'
     }
     try:
-        resp = requests.get(url, params=params, timeout=10)
+        resp = requests.get(url, params=params, timeout=15)
         resp.raise_for_status()
         data = resp.json()
-        price = data[coin_id]['usd']
-        change_pct = data[coin_id].get('usd_24h_change', 0)
-        return price, f'{change_pct:.2f}%'
-    except Exception as e:
-        raise e
-    
+        # Diccionario de resultados
+        results = {}
+        for sym in symbols:
+            coin_id = mapping.get(sym.upper())
+            if coin_id and coin_id in data:
+                price = data[coin_id]['usd']
+                change_pct = data[coin_id].get('usd_24h_change', 0)
+                results[sym.upper()] = (price, f'{change_pct:.2f}%')
+            else:
+                results[sym.upper()] = (0, '0%')
 
+        # Guardar en caché
+        _coingecko_cache = results
+        _coingecko_cache_time = now
+
+        return results
+    
+    except Exception as e:
+        print(f'Error en la llamada batch a CoinGecko: {e}')
+        return {}
+    
 def get_mexican_price(symbol):
     """ Obtiene el precio actual y cambio % diario de un activo MX """
     ticker = yf.Ticker(symbol)
@@ -144,6 +190,12 @@ def get_mexican_price(symbol):
 
 def get_portfolio_value(portfolio_df):
     """ Añade cols de precio, valor y cambio % de cada activo """
+    # Primero, todos los precios crypto de una sola vez
+    crypto_symbols = portfolio_df[portfolio_df['type'] == 'crypto']['symbol'].unique()
+    crypto_prices = {}
+    if len(crypto_symbols) > 0:
+            crypto_prices = get_all_crypto_prices_coingecko(crypto_symbols)
+
     rows = []
     for _, row in portfolio_df.iterrows():
         symbol = row['symbol']
@@ -171,7 +223,11 @@ def get_portfolio_value(portfolio_df):
                     price, change_pct = get_equity_price(symbol)
                     time.sleep(1.5)
             elif asset_type == 'crypto':
-                price, change_pct = get_crypto_price(symbol)
+                if symbol.upper() in crypto_prices:
+                    price, change_pct = crypto_prices[symbol.upper()]
+                else:
+                    price, change_pct = 0, '0%'
+                #price, change_pct = get_crypto_price_coingecko(symbol)
         except Exception as e:
             print(f'Error fetching {symbol}: {e}')
             price, change_pct = 0, '0%'
