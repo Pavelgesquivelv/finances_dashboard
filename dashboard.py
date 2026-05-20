@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 from portfolio import load_portfolio
 from data_fetcher import get_portfolio_value, get_usd_mxn_rate
+from historical import compute_portfolio_history
 
 st.set_page_config(page_title="Mi Dashboard Financiero", layout="wide")
 st.title("📈 Dashboard de Inversiones (Alpha Vantage + Binance)")
@@ -70,6 +71,39 @@ fig_bar = px.bar(
 )
 fig_bar.update_traces(texttemplate='$%{text:,.2f}', textposition='outside')
 st.plotly_chart(fig_bar, width='stretch')
+
+# --- Sección de Evolución histórica ---
+st.subheader(' 📅 Evolución del Portafolio (MXN)')
+
+# Selector del periodo
+period = st.selectbox(
+    'Selecciona el periodo:',
+    options=['1mo','3mo','6mo','1y'],
+    index=0
+)
+
+# Cargar y cachear el histórico (para no repetir llamadas cada vez que se cambia el periodo)
+@st.cache_data(ttl=3600) # 1 hora de caché
+def load_history(portfolio, period):
+    return compute_portfolio_history(portfolio, period)
+
+with st.spinner('Cargando históricos...'):
+    hist_df = load_history(portfolio, period)
+
+# Gráfico de línea del valor total
+fig_line = px.line(
+    hist_df,
+    x='Date',
+    y='Total_MXN',
+    title=f'Evolución del valor del portafolio (último {period})',
+    labels={'Total_MXN':'MXN'}
+)
+fig_line.update_layout(yaxis_tickprefix='$')
+st.plotly_chart(fig_line, width='stretch')
+
+# Optional mostrar tabla de de datos históricos
+with st.expander('Ver tabla de datos históricos'):
+    st.dataframe(hist_df.style.format({'Total_MXN': '${:,.2f} MXN'}))
 
 # Nota sobre limitaciones
 st.caption("Datos de acciones: Alpha Vantage (25 req/día gratis). Crypto: Binance API pública.")
