@@ -5,7 +5,7 @@ from portfolio import load_portfolio
 from data_fetcher import get_portfolio_value, get_usd_mxn_rate
 from historical import compute_portfolio_history
 
-st.set_page_config(page_title="Mi Dashboard Financiero", layout="wide")
+st.set_page_config(page_title="Mi Dashboard", layout="wide")
 st.title("📈 Dashboard de Portafolio de Inversiones")
 
 # Cargar portafolio
