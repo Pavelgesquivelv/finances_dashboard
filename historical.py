@@ -58,7 +58,7 @@ def get_usd_mxn_history(period='1mo'):
     data.index = _remove_timezone(data.index)
     return data['Close']
 
-def compute_portfolio_history(portfolio_df, period='1mo'):
+def compute_portfolio_history(portfolio_df, period='1mo', include_crypto=True):
     """
       Calcula la evolución diario del valor total del portafolio en MXN 
       portfolio_df: DataFrame con cols [asset, symbol, quantity, type, currency]
@@ -90,7 +90,10 @@ def compute_portfolio_history(portfolio_df, period='1mo'):
                 # Usamos yfinance para todos los equities
                 prices = get_equity_history(symbol, period)
             elif asset_type == 'crypto':
-                prices = get_crypto_history_coingecko_cached(symbol, period)
+                if include_crypto:
+                    prices = get_crypto_history(symbol, period)
+                else:
+                    continue
             else:
                 continue
         except Exception as e:
