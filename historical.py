@@ -3,6 +3,7 @@ import yfinance as yf
 import requests
 import time
 
+
 def _remove_timezone(index):
     """ Convierte el índice a UTC y luego elimina la zona horaria... """
     if index.tz is not None:
@@ -11,13 +12,17 @@ def _remove_timezone(index):
 
 def get_equity_history(symbol, period='1mo'):
     """ Descarga el histórico de una acción vía yfinance """
-    ticker = yf.Ticker(symbol)
-    data = ticker.history(period=period)
-    if data.empty:
-        raise ValueError(f'No se encontraron datos históricos para {symbol}')
-    data.index = _remove_timezone(data.index)
-    return data['Close']
-
+    try:
+        ticker = yf.Ticker(symbol)
+        data = ticker.history(period=period)
+        if data.empty:
+            raise ValueError(f'No se encontraron datos históricos para {symbol}')
+        data.index = _remove_timezone(data.index)
+        return data['Close']
+    except Exception as e:
+        print(f'Error en get_equity_history({symbol}): {e}')
+        return pd.Series(dtype=float)   # Serie vacía
+    
 def get_crypto_history(symbol, period='1mo'):
     '''
     Obtiene velas diarias de Binance y devuelve una serie de precios de cierre
@@ -79,18 +84,22 @@ def compute_portfolio_history(portfolio_df, period='1mo'):
             continue
         
         # Obtener precios históricos
+        prices = None
         try:
             if asset_type == 'equity':
                 # Usamos yfinance para todos los equities
                 prices = get_equity_history(symbol, period)
             elif asset_type == 'crypto':
-                prices = get_crypto_history(symbol, period)
+                prices = get_crypto_history_coingecko_cached(symbol, period)
             else:
                 continue
         except Exception as e:
             print(f'No se pudo obtener historia de {symbol}: {e}')
             continue
-
+        # Verificar que prices sea una Serie válida
+        if prices is None or prices.empty:
+            print(f'Histórico vacío o nulo para {symbol}, se omite.')
+            continue
         #prices = prices.reindex(fx.index)
         #prices.bfill(inplace=True)
         #prices.ffill(inplace=True)
@@ -116,9 +125,15 @@ def compute_portfolio_history(portfolio_df, period='1mo'):
     # Excluimos la columns 'Cash_MXN' y 'Total_MXN'
     investment_cols = [col for col in combined.columns if col not in ['Cash_MXN', 'Total_MXN']]
     if investment_cols:
-        first_valid_idx = combined[investment_cols].notna().any(axis=1).idxmax()
+        # Crear una máscara booleana: True donde al menos un activo tiene valor
+        has_investment = combined[investment_cols].notna().any(axis=1)
+        # Encontrar la primer posición con True
+        first_valid_pos = has_investment.idxmax()
+
+        #first_valid_idx = combined[investment_cols].notna().any(axis=1).idxmax()
         # Cortar desde esa fecha en adelante
-        combined = combined.loc[first_valid_idx:]
+        if has_investment.any():
+            combined = combined.loc[first_valid_pos:]
 
     combined.index.name = 'Date'
     return combined.reset_index()

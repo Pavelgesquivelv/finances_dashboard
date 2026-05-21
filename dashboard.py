@@ -27,7 +27,7 @@ portfolio = load_portfolio(selected_portfolio)
 
 st.title(f"📈 Dashboard de Portafolio de Inversiones - {selected_name.title()}")
 st.sidebar.header("Posiciones actuales")
-st.sidebar.dataframe(portfolio)
+st.sidebar.dataframe(portfolio[['asset','quantity','currency']])
 
 # Obtener datos actualizados
 with st.spinner("Obteniendo precios en tiempo real..."):
@@ -88,38 +88,39 @@ fig_bar = px.bar(
 fig_bar.update_traces(texttemplate='$%{text:,.2f}', textposition='outside')
 st.plotly_chart(fig_bar, width='stretch')
 
+if selected_name == 'Portafolio Principal':
 # --- Sección de Evolución histórica ---
-st.subheader(' 📅 Evolución del Portafolio (MXN)')
+    st.subheader(' 📅 Evolución del Portafolio (MXN)')
 
 # Selector del periodo
-period = st.selectbox(
-    'Selecciona el periodo:',
-    options=['1mo','3mo','6mo','1y'],
-    index=0
-)
+    period = st.selectbox(
+        'Selecciona el periodo:',
+        options=['1mo','3mo','6mo','1y'],
+        index=0
+    )
 
 # Cargar y cachear el histórico (para no repetir llamadas cada vez que se cambia el periodo)
-@st.cache_data(ttl=3600) # 1 hora de caché
-def load_history(portfolio, period):
-    return compute_portfolio_history(portfolio, period)
+    @st.cache_data(ttl=3600) # 1 hora de caché
+    def load_history(portfolio, period):
+        return compute_portfolio_history(portfolio, period)
 
-with st.spinner('Cargando históricos...'):
-    hist_df = load_history(portfolio, period)
+    with st.spinner('Cargando históricos...'):
+        hist_df = load_history(portfolio, period)
 
-# Gráfico de línea del valor total
-fig_line = px.line(
-    hist_df,
-    x='Date',
-    y='Total_MXN',
-    title=f'Evolución del valor del portafolio (último {period})',
-    labels={'Total_MXN':'MXN'}
-)
-fig_line.update_layout(yaxis_tickprefix='$')
-st.plotly_chart(fig_line, width='stretch')
+    # Gráfico de línea del valor total
+    fig_line = px.line(
+        hist_df,
+        x='Date',
+        y='Total_MXN',
+        title=f'Evolución del valor del portafolio (último {period})',
+        labels={'Total_MXN':'MXN'}
+    )
+    fig_line.update_layout(yaxis_tickprefix='$')
+    st.plotly_chart(fig_line, width='stretch')
 
-# Optional mostrar tabla de de datos históricos
-with st.expander('Ver tabla de datos históricos'):
-    st.dataframe(hist_df.style.format({'Total_MXN': '${:,.2f} MXN'}))
+    # Optional mostrar tabla de de datos históricos
+    with st.expander('Ver tabla de datos históricos'):
+        st.dataframe(hist_df.style.format({'Total_MXN': '${:,.2f} MXN'}))
 
 # Nota sobre limitaciones
 #st.caption("Datos de acciones: Alpha Vantage (25 req/día gratis). Crypto: Binance API pública.")
