@@ -31,15 +31,15 @@ Interactive Dashboard for Equities and Crypto Portfolios
 ## The Project
 
 finances-dashboard/
-├── dashboard.py             # Main app with the user interface
-├── config.py                # Loads environment variables and secrets
-├── data_fetcher.py          # Fetches current prices (Twelve Data, Yahoo Finance, CoinGecko)
-├── historical.py            # Computes the portfolio's historical performance
-├── portfolio.py             # Portfolio loading and management logic (CSV / secrets)
-├── portfolio.csv.example    # Example portfolio file 
-├── .gitignore               # Files ignored by Git
-├── requirements.txt         # Project dependencies
-└── README.md                # This document
+- dashboard.py             # Main app with the user interface
+- config.py                # Loads environment variables and secrets
+- data_fetcher.py          # Fetches current prices (Twelve Data, Yahoo Finance, CoinGecko)
+- historical.py            # Computes the portfolio's historical performance
+- portfolio.py             # Portfolio loading and management logic (CSV / secrets)
+- portfolio.csv.example    # Example portfolio file 
+- .gitignore               # Files ignored by Git
+- requirements.txt         # Project dependencies
+- README.md                # This document
 
 ## url
 https://financesdashboard-zbvrud56ahgwar2adxkmyy.streamlit.app/
